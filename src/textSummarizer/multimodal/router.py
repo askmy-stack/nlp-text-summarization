@@ -2,7 +2,7 @@ from textSummarizer.models import ModelFactory
 from textSummarizer.multimodal.audio import AudioSummarizer
 from textSummarizer.multimodal.base import InputType, MultimodalInput
 from textSummarizer.multimodal.image import ImageSummarizer
-from textSummarizer.multimodal.video import FFmpegNotFoundError, VideoSummarizer
+from textSummarizer.multimodal.video import VideoSummarizer
 
 
 class MultimodalRouter:
@@ -78,15 +78,12 @@ class MultimodalRouter:
 
         if input.input_type == InputType.VIDEO:
             data = input.resolve_bytes()
-            try:
-                result = self._video.summarize(
-                    path=input.path,
-                    data=data,
-                    max_length=max_length,
-                    strategy=strategy,
-                )
-            except FFmpegNotFoundError as exc:
-                raise ValueError(str(exc)) from exc
+            result = self._video.summarize(
+                path=input.path,
+                data=data,
+                max_length=max_length,
+                strategy=strategy,
+            )
             return {
                 "input_type": input.input_type.value,
                 "document": result["document"],

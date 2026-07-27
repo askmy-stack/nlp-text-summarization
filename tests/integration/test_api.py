@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from textSummarizer.multimodal.video import FFmpegNotFoundError
 from textSummarizer.serving.app import app
 from textSummarizer.serving.sandbox import get_sandbox_dir
 
@@ -94,6 +95,31 @@ async def test_summarize_multimodal_video_json():
     assert data["summary"] == "A short demo video."
     assert data["document"]
     assert data["transcript"] == "Demo transcript."
+
+
+@pytest.mark.asyncio
+async def test_summarize_multimodal_video_returns_503_when_ffmpeg_is_missing():
+    transport = ASGITransport(app=app)
+    message = (
+        "ffmpeg is required for video summarization but was not found on PATH. "
+        "Install ffmpeg: https://ffmpeg.org/download.html"
+    )
+    with patch(
+        "textSummarizer.multimodal.router.VideoSummarizer.summarize",
+        side_effect=FFmpegNotFoundError(message),
+    ):
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.post(
+                "/summarize/multimodal",
+                json={
+                    "input_type": "video",
+                    "path": "/tmp/demo.mp4",
+                    "model": "extractive",
+                },
+            )
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": message}
 
 
 @pytest.mark.asyncio

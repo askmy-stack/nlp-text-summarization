@@ -15,6 +15,7 @@ from textSummarizer.grading.rubric import GradingRubric
 from textSummarizer.models import ModelFactory
 from textSummarizer.multimodal.base import InputType, MultimodalInput
 from textSummarizer.multimodal.router import MultimodalRouter
+from textSummarizer.multimodal.video import FFmpegNotFoundError
 from textSummarizer.pipeline.stage_01_data_ingestion import DataIngestionTrainingPipeline
 from textSummarizer.pipeline.stage_02_data_validation import DataValidationTrainingPipeline
 from textSummarizer.pipeline.stage_03_data_transformation import DataTransformationTrainingPipeline
@@ -350,6 +351,8 @@ async def summarize_multimodal_json(request: MultimodalJsonRequest):
             max_length=request.max_length,
             strategy=request.strategy,
         )
+    except FFmpegNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (ValueError, NotImplementedError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
@@ -385,6 +388,8 @@ async def summarize_multimodal_upload(
             max_length=max_length,
             strategy=strategy,
         )
+    except FFmpegNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (ValueError, NotImplementedError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
