@@ -4,6 +4,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from textSummarizer.serving.app import app
+from textSummarizer.serving.sandbox import get_sandbox_dir
 
 
 @pytest.mark.asyncio
@@ -81,7 +82,7 @@ async def test_summarize_multimodal_video_json():
                 "/summarize/multimodal",
                 json={
                     "input_type": "video",
-                    "path": "/tmp/demo.mp4",
+                    "path": str(get_sandbox_dir() / "demo.mp4"),
                     "model": "extractive",
                     "strategy": "map_reduce",
                     "max_length": 64,

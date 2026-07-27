@@ -29,6 +29,7 @@ from textSummarizer.serving.auth import (
     verify_train_key,
 )
 from textSummarizer.serving.gpu_pool import get_gpu_pool
+from textSummarizer.serving.sandbox import resolve_sandboxed_path
 
 API_VERSION = "1.2.0"
 MAX_VIDEO_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
@@ -335,6 +336,8 @@ async def summarize_multimodal_json(request: MultimodalJsonRequest):
             detail=f"Invalid input_type: {request.input_type}",
         ) from exc
 
+    sandboxed_path = str(resolve_sandboxed_path(request.path)) if request.path else None
+
     router = MultimodalRouter(text_model=request.model)
     try:
         result = router.summarize(
@@ -342,7 +345,7 @@ async def summarize_multimodal_json(request: MultimodalJsonRequest):
                 input_type=input_type,
                 text=request.text,
                 base64_data=request.base64_data,
-                path=request.path,
+                path=sandboxed_path,
             ),
             max_length=request.max_length,
             strategy=request.strategy,
