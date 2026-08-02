@@ -114,3 +114,37 @@ async def test_multimodal_path_within_sandbox_reaches_router():
     assert response.status_code == 200
     called_input = mock_summarize.call_args.args[0]
     assert called_input.path == str(sandboxed_file.resolve())
+
+
+@pytest.mark.asyncio
+async def test_image_upload_rejects_oversized_file():
+    transport = ASGITransport(app=app)
+    oversized = b"\xff\xd8\xff" + (b"x" * (10 * 1024 * 1024 + 1))
+    files = {"file": ("big.jpg", oversized, "image/jpeg")}
+    data = {"input_type": "image", "model": "extractive"}
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/summarize/multimodal/upload", files=files, data=data)
+    assert response.status_code == 422
+    assert "maximum size" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_image_upload_rejects_unsupported_mime():
+    transport = ASGITransport(app=app)
+    files = {"file": ("notes.txt", b"not an image", "text/plain")}
+    data = {"input_type": "image", "model": "extractive"}
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/summarize/multimodal/upload", files=files, data=data)
+    assert response.status_code == 422
+    assert "mime" in response.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_audio_upload_rejects_unsupported_mime():
+    transport = ASGITransport(app=app)
+    files = {"file": ("clip.bin", b"\x00\x01", "application/octet-stream")}
+    data = {"input_type": "audio", "model": "extractive"}
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/summarize/multimodal/upload", files=files, data=data)
+    assert response.status_code == 422
+    assert "mime" in response.json()["detail"].lower()

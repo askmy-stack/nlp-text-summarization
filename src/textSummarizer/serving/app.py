@@ -34,11 +34,29 @@ from textSummarizer.serving.sandbox import resolve_sandboxed_path
 
 API_VERSION = "1.2.0"
 MAX_VIDEO_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+MAX_AUDIO_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
 VIDEO_MIME_TYPES = {
     "video/mp4",
     "video/webm",
     "video/quicktime",
     "video/x-matroska",
+}
+IMAGE_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+}
+AUDIO_MIME_TYPES = {
+    "audio/wav",
+    "audio/x-wav",
+    "audio/mpeg",
+    "audio/mp3",
+    "audio/ogg",
+    "audio/webm",
+    "audio/flac",
+    "audio/mp4",
 }
 
 SUMMARIZE_EXAMPLE = {
@@ -305,21 +323,42 @@ def _multimodal_result_to_response(result: dict, strategy: str) -> MultimodalRes
     )
 
 
-def _validate_video_upload(file: UploadFile, content: bytes) -> None:
-    if file.content_type and file.content_type not in VIDEO_MIME_TYPES:
+def _validate_media_upload(input_type: str, file: UploadFile, content: bytes) -> None:
+    """Enforce MIME allowlists and max bytes for image/audio/video uploads."""
+    if input_type == "video":
+        allowed = VIDEO_MIME_TYPES
+        max_bytes = MAX_VIDEO_UPLOAD_BYTES
+        label = "video"
+    elif input_type == "image":
+        allowed = IMAGE_MIME_TYPES
+        max_bytes = MAX_IMAGE_UPLOAD_BYTES
+        label = "image"
+    elif input_type == "audio":
+        allowed = AUDIO_MIME_TYPES
+        max_bytes = MAX_AUDIO_UPLOAD_BYTES
+        label = "audio"
+    else:
+        raise HTTPException(status_code=422, detail=f"Unsupported upload input_type: {input_type}")
+
+    if file.content_type and file.content_type not in allowed:
         raise HTTPException(
             status_code=422,
             detail=(
-                f"Unsupported video MIME type: {file.content_type}. "
-                f"Supported: {', '.join(sorted(VIDEO_MIME_TYPES))}"
+                f"Unsupported {label} MIME type: {file.content_type}. "
+                f"Supported: {', '.join(sorted(allowed))}"
             ),
         )
-    if len(content) > MAX_VIDEO_UPLOAD_BYTES:
-        max_mb = MAX_VIDEO_UPLOAD_BYTES // (1024 * 1024)
+    if len(content) > max_bytes:
+        max_mb = max_bytes // (1024 * 1024)
         raise HTTPException(
             status_code=422,
-            detail=f"Video file exceeds maximum size of {max_mb} MB",
+            detail=f"{label.capitalize()} file exceeds maximum size of {max_mb} MB",
         )
+
+
+def _validate_video_upload(file: UploadFile, content: bytes) -> None:
+    """Backward-compatible alias used by older tests/callers."""
+    _validate_media_upload("video", file, content)
 
 
 @app.post(
@@ -373,10 +412,9 @@ async def summarize_multimodal_upload(
     max_length: int = Form(default=128, ge=16, le=512),
 ):
     content = await file.read()
-    if input_type == "video":
-        _validate_video_upload(file, content)
-        if strategy == "stuff":
-            strategy = "map_reduce"
+    _validate_media_upload(input_type, file, content)
+    if input_type == "video" and strategy == "stuff":
+        strategy = "map_reduce"
     router = MultimodalRouter(text_model=model)
     try:
         result = router.summarize(
