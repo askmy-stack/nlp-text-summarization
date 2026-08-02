@@ -113,7 +113,7 @@ async def test_summarize_multimodal_video_returns_503_when_ffmpeg_is_missing():
                 "/summarize/multimodal",
                 json={
                     "input_type": "video",
-                    "path": "/tmp/demo.mp4",
+                    "path": str(get_sandbox_dir() / "demo.mp4"),
                     "model": "extractive",
                 },
             )
