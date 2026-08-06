@@ -18,7 +18,11 @@ def _load_space_app(monkeypatch: pytest.MonkeyPatch, limit: int = 10):
     import types
 
     fake_models = types.ModuleType("textSummarizer.models")
-    fake_models.ModelFactory = type("ModelFactory", (), {"create": staticmethod(lambda *_a, **_k: None)})
+    fake_models.ModelFactory = type(
+        "ModelFactory",
+        (),
+        {"create": staticmethod(lambda *_a, **_k: None)},
+    )
     fake_pipelines = types.ModuleType("textSummarizer.pipelines")
     fake_pipelines.STRATEGIES = ["stuff"]
     sys.modules.setdefault("textSummarizer", types.ModuleType("textSummarizer"))
