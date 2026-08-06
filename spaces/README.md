@@ -66,3 +66,8 @@ python app.py
 ```
 
 For full repo docs see the [main README](https://github.com/askmy-stack/nexus-forge).
+
+## Rate limiting
+
+Public demos are capped at **10 requests per minute per client** (IP / session).
+Override with `SPACE_RATE_LIMIT_PER_MINUTE` in the Space secrets or environment.
