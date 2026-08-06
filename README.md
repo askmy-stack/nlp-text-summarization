@@ -288,6 +288,8 @@ Regenerate the README demo GIF:
 uv run python scripts/generate_demo_gif.py
 ```
 
+- Security: see [SECURITY.md](SECURITY.md)
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
